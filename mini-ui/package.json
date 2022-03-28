@@ -1,0 +1,20 @@
+{
+  "name": "mini-ui-nodejs",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./index.js"
+  },
+  "keywords": [],
+  "author": "Erwin Geuens",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.26.1",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "express-basic-auth": "^1.2.1",
+    "rtsp-ffmpeg": "^0.0.16",
+    "socket.io": "^4.4.1"
+  }
+}
