@@ -7,7 +7,10 @@ console.debug(`Reading file "${inputPath}"`);
 reader.read(inputPath)
     .then(results => {
         console.log(results);
-        manipulator.setStaticIps(results);
+        return manipulator.setStaticIps(results);
+    })
+    .then(results => {
+        console.log("All " + results.length + " configurations done");
     })
     .catch(err => {
         console.error(err);

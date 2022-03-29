@@ -13,5 +13,16 @@
   "dependencies": {
     "axios": "^0.26.1",
     "csv-parser": "^3.0.0"
+  },
+  "newWifiConfig": {
+    "config": {
+      "sta": {
+        "ipv4mode": "static",
+        "ip": "[ipAddress]",
+        "netmask": "255.255.255.0",
+        "gw": "192.168.0.1",
+        "nameserver": "1.1.1.1"
+      }
+    }
   }
 }
