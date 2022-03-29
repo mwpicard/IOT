@@ -1,0 +1,17 @@
+{
+  "name": "static-ip-script",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Erwin Geuens",
+  "license": "CC-BY-NC",
+  "description": "",
+  "dependencies": {
+    "axios": "^0.26.1",
+    "csv-parser": "^3.0.0"
+  }
+}
