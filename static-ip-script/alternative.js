@@ -1,23 +1,27 @@
-const ping = require("net-ping"), axios = require("axios");
+const ping = require("net-ping").createSession(), axios = require("axios");
 const packageInfo = require("./package.json");
 
 const gateway = packageInfo.newWifiConfig.config.sta.gw
     , netmask = packageInfo.newWifiConfig.config.sta.netmask
     , dns = packageInfo.newWifiConfig.config.sta.nameserver;
 
+process.on('uncaughtException', function (err) {
+    console.error(err.stack);
+    console.log("Node NOT Exiting...");
+});
+
 function getAllLivingIps() {
     console.log(`Hi!`);
     console.log(`Calculating IP address range for gateway "${gateway}" with subnet mask "${netmask}".`)
 
     const ipPromises = [];
-    const session = ping.createSession();
 
     //TODO figure out what ip's there are for [gateway] using [netmask]
     for (let i = 2; i < 255; i++) {
         const ip = `192.168.0.${i}`;
         // const ip = `192.168.0.149`;
         ipPromises.push(new Promise(resolve => {
-            session.pingHost(ip, (err, target) => {
+            ping.pingHost(ip, (err, target) => {
                 if (!err) {
                     resolve(target);
                 }
@@ -43,31 +47,54 @@ getAllLivingIps()
         aliveIps.forEach(ip => {
             requests.push(new Promise(resolve => {
                 axios.get(`http://${ip}/shelly`)
-                    .then(response => {
-                        if (response.data.hasOwnProperty("gen")) {
-                            resolve(null); //gen 2+ 
-                        } else {
-                            resolve(response);
-                        }
-                    })
+                    .then(response => resolve(response))
                     .catch(() => resolve(null));
             }));
         });
 
-        console.log(`Checking ${aliveIps.length} devices whether they are Shelly Gen1 devices or not.`)
+        console.log(`Checking ${aliveIps.length} devices whether they are Shelly devices or not.`)
         return Promise.all(requests);
     })
     .then(requestsInfo => {
         const shellyIps = requestsInfo.filter(r => r !== null);
+        let gen1counter = 0, gen2counter = 0;
 
-        console.log(`Found ${shellyIps.length} Shelly Gen1 devices.`)
+        console.log(`Found ${shellyIps.length} Shelly devices.`)
         console.debug(shellyIps);
 
         const requests = [];
         shellyIps.forEach(shelly => {
             console.log(shelly);
             const ip = shelly.request.host;
-            if (shelly.data.type.indexOf("SHMOS") === 0) {
+            if (shelly.data.hasOwnProperty("gen")) {
+                //gen 2
+                gen2counter++;
+                const rpcUrl = `http://${ip}/rpc`;
+                const newConfig = packageInfo.newWifiConfig;
+                if (newConfig.config.sta.ip !== null)
+                    newConfig.config.sta.ip = ip;
+
+                requests.push(new Promise(resolve => {
+                    axios
+                        .post(rpcUrl, {
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "src": "user_1",
+                            "method": "Wifi.SetConfig",
+                            "params": newConfig
+                        })
+                        .then(response => {
+                            console.log("New settings successfully applied (Gen2).");
+                            resolve(response.data);
+                        })
+                        .catch(() => {
+                            console.error("New settings NOT applied.", err);
+                            resolve(null);
+                        });
+                }));
+            }
+            else if (shelly.data.type.indexOf("SHMOS") === 0) {
+                gen1counter++;
                 //Shelly Motion has a different API
                 const wifiSettingsUrl = `http://Canpicard:!$Shally99@${ip}/settings/wifi_sta`;
                 const newConfig = {
@@ -83,7 +110,7 @@ getAllLivingIps()
                 requests.push(new Promise(resolve => {
                     return axios.get(wifiSettingsUrl, { params: newConfig })
                         .then(response => {
-                            console.log("New settings successfully applied.");
+                            console.log("New settings successfully applied (Gen1 - Motion sensor).");
                             resolve(response.data);
                         })
                         .catch(err => {
@@ -93,6 +120,7 @@ getAllLivingIps()
                 }));
             }
             else {
+                gen1counter++;
                 const wifiSettingsUrl = `http://Canpicard:!$Shally99@${ip}/settings/sta`;
                 const newConfig = {
                     "enabled": true,
@@ -107,7 +135,7 @@ getAllLivingIps()
                 requests.push(new Promise(resolve => {
                     return axios.get(wifiSettingsUrl, { params: newConfig })
                         .then(response => {
-                            console.log("New settings successfully applied.");
+                            console.log("New settings successfully applied (Gen1).");
                             resolve(response.data);
                         })
                         .catch(err => {
@@ -122,9 +150,9 @@ getAllLivingIps()
         return Promise.all(requests);
     })
     .then(info => {
-        console.log(`Configured ${info.length} Shelly Gen1 devices.`)
+        console.log(`Configured ${info.length} Shelly devices.`)
         console.log(`All done here, bye!`)
     })
-    .catch(() => {
-        console.error("error");
+    .catch(err => {
+        console.error(err);
     });
