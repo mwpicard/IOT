@@ -13,16 +13,17 @@
   "dependencies": {
     "axios": "^0.26.1",
     "csv-parser": "^3.0.0",
+    "dotenv": "^16.0.0",
     "net-ping": "^1.2.3"
   },
   "newWifiConfig": {
     "config": {
       "sta": {
-        "ipv4mode": "static",
-        "ip": "[ipAddress]",
-        "netmask": "255.255.255.0",
-        "gw": "192.168.0.1",
-        "nameserver": "1.1.1.1"
+        "ipv4mode": "dhcp",
+        "ip": null,
+        "netmask": null,
+        "gw": null,
+        "nameserver": null
       }
     }
   }

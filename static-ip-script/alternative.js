@@ -1,5 +1,8 @@
+require("dotenv").config();
 const ping = require("net-ping").createSession(), axios = require("axios");
 const packageInfo = require("./package.json");
+
+throw new Error("We have to make sure that ALL the GEN1 wifi settings are getting passed!!");
 
 const gateway = packageInfo.newWifiConfig.config.sta.gw
     , netmask = packageInfo.newWifiConfig.config.sta.netmask
@@ -12,14 +15,14 @@ process.on('uncaughtException', function (err) {
 
 function getAllLivingIps() {
     console.log(`Hi!`);
-    console.log(`Calculating IP address range for gateway "${gateway}" with subnet mask "${netmask}".`)
+    console.log(`Calculating IP address range for gateway "${gateway}" with subnet mask "${netmask}".`);
 
     const ipPromises = [];
 
     //TODO figure out what ip's there are for [gateway] using [netmask]
-    for (let i = 2; i < 255; i++) {
-        const ip = `192.168.0.${i}`;
-        // const ip = `192.168.0.149`;
+    // for (let i = 2; i < 255; i++) {
+    //     const ip = `192.168.0.${i}`;
+        const ip = `192.168.0.98`;
         ipPromises.push(new Promise(resolve => {
             ping.pingHost(ip, (err, target) => {
                 if (!err) {
@@ -30,7 +33,7 @@ function getAllLivingIps() {
                 }
             });
         }));
-    }
+    // }
 
     console.log(`Pinging ${ipPromises.length} ip addresses.`)
     return Promise.all(ipPromises);
@@ -99,13 +102,14 @@ getAllLivingIps()
                 const wifiSettingsUrl = `http://Canpicard:!$Shally99@${ip}/settings/wifi_sta`;
                 const newConfig = {
                     "enabled": true,
-                    "ipv4_method": packageInfo.newWifiConfig.config.sta.ipv4mode,
-                    "ip": ip,
-                    // "gw": gateway, //<=== shelly documentation is off the parameter name is "gateway"
-                    "gateway": gateway,
-                    "mask": netmask,
-                    "dns": dns
+                    "ipv4_method": packageInfo.newWifiConfig.config.sta.ipv4mode
                 };
+                if(packageInfo.newWifiConfig.config.sta.ipv4mode !== "dhcp") {
+                    newConfig["ip"] = ip;
+                    newConfig["gateway"] = gateway;
+                    newConfig["mask"] = netmask;
+                    newConfig["dns"] = dns;
+                }
                 console.debug(newConfig);
                 requests.push(new Promise(resolve => {
                     return axios.get(wifiSettingsUrl, { params: newConfig })
@@ -122,15 +126,27 @@ getAllLivingIps()
             else {
                 gen1counter++;
                 const wifiSettingsUrl = `http://Canpicard:!$Shally99@${ip}/settings/sta`;
+                // config looks like this:
+                // "enabled": true,
+                // "ssid": "Castle",
+                // "key": "password"
+                // "ipv4_method": "dhcp",
+                // "ip": null,
+                // "gw": null,
+                // "mask": null,
+                // "dns": null
                 const newConfig = {
                     "enabled": true,
-                    "ipv4_method": packageInfo.newWifiConfig.config.sta.ipv4mode,
-                    "ip": ip,
-                    // "gw": gateway, //<=== shelly documentation is off the parameter name is "gateway"
-                    "gateway": gateway,
-                    "mask": netmask,
-                    "dns": dns
+                    "ssid": process.env["STATIC_IP_SSID"],
+                    "key": process.env["STATIC_IP_KEY"],
+                    "ipv4_method": packageInfo.newWifiConfig.config.sta.ipv4mode
                 };
+                if(packageInfo.newWifiConfig.config.sta.ipv4mode !== "dhcp") {
+                    newConfig["ip"] = ip;
+                    newConfig["gateway"] = gateway;
+                    newConfig["mask"] = netmask;
+                    newConfig["dns"] = dns;
+                }
                 console.debug(newConfig);
                 requests.push(new Promise(resolve => {
                     return axios.get(wifiSettingsUrl, { params: newConfig })
